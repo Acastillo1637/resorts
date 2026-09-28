@@ -1,0 +1,72 @@
+\set ON_ERROR_STOP on
+begin;
+create function pg_temp.assert(ok boolean, mensaje text) returns void language plpgsql as $$ begin if ok is distinct from true then raise exception 'FALLÓ: %',mensaje; end if; end $$;
+create function pg_temp.rechaza(sql text, mensaje text) returns void language plpgsql as $$ begin begin execute sql; exception when others then return; end; raise exception 'FALLÓ (no rechazó): %',mensaje; end $$;
+insert into auth.users(id) values('10000000-0000-0000-0000-000000000001'),('10000000-0000-0000-0000-000000000002'),('10000000-0000-0000-0000-000000000003'),('10000000-0000-0000-0000-000000000004');
+insert into perfiles(id,rut,nombre,rol,hotel_id) values
+ ('10000000-0000-0000-0000-000000000001','11111111-1','Gerente prueba','gerente',null),
+ ('10000000-0000-0000-0000-000000000002','22222222-2','Cliente prueba','cliente',null),
+ ('10000000-0000-0000-0000-000000000003','33333333-3','Recepción prueba','recepcionista',(select id from hoteles where nombre='Módulo Humo'));
+select set_config('test.hotel',(select id::text from hoteles where nombre='Residencia Cúncumen'),true);
+select set_config('test.room',(select id::text from habitaciones where numero='C01'),true);
+set local role authenticated;
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
+select set_config('test.reserva',(fn_guardar_reserva(current_setting('test.room')::uuid,current_date,current_date+2,2,0)).id::text,true);
+select pg_temp.assert((select tarifa_noche=210000 and adultos=2 from reservas where id=current_setting('test.reserva')::uuid),'creación y tarifa');
+select pg_temp.assert((select monto_total=420000 from facturas where reserva_id=current_setting('test.reserva')::uuid),'factura inicial');
+select pg_temp.rechaza(format('select fn_guardar_reserva(%L,current_date+1,current_date+3)',current_setting('test.room')),'solapamiento');
+select pg_temp.assert(not exists(select 1 from fn_disponibilidad(current_setting('test.hotel')::uuid,current_date,current_date+2) where id=current_setting('test.room')::uuid),'disponibilidad ocupada');
+select pg_temp.assert(exists(select 1 from fn_disponibilidad(current_setting('test.hotel')::uuid,current_date+2,current_date+4) where id=current_setting('test.room')::uuid),'fechas adyacentes');
+select pg_temp.rechaza(format('select fn_guardar_reserva(%L,current_date+3,current_date+4,2,1)',current_setting('test.room')),'capacidad');
+select pg_temp.rechaza(format('select fn_guardar_reserva(%L,current_date-1,current_date+1)',current_setting('test.room')),'fecha pasada');
+select pg_temp.rechaza(format('select fn_guardar_reserva(%L,current_date,current_date)',current_setting('test.room')),'cero noches');
+select fn_guardar_reserva(current_setting('test.room')::uuid,current_date,current_date+3,1,0,null,current_setting('test.reserva')::uuid,1,'Cambio','pendiente');
+select pg_temp.assert((select monto_total=630000 from facturas where reserva_id=current_setting('test.reserva')::uuid),'recalcula al editar');
+select pg_temp.rechaza(format('select fn_guardar_reserva(%L,current_date,current_date+2,1,0,null,%L,1)',current_setting('test.room'),current_setting('test.reserva')),'versión obsoleta');
+select pg_temp.rechaza(format('select fn_checkin(%L)',current_setting('test.reserva')),'cliente no hace check-in');
+select pg_temp.rechaza('update perfiles set rol=''gerente'' where id=auth.uid()','escalación de rol');
+select pg_temp.rechaza('update perfiles set hotel_id=null where id=auth.uid()','escalación de hotel');
+select pg_temp.rechaza('update reservas set tarifa_noche=0','escritura directa');
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000003',true);
+select pg_temp.assert((select count(*)=0 from reservas),'RLS otro hotel');
+select pg_temp.rechaza(format('select fn_estado_reserva(%L,''confirmada'')',current_setting('test.reserva')),'recepción otro hotel');
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000004',true);
+select pg_temp.rechaza(format('select fn_checkin(%L)',current_setting('test.reserva')),'usuario sin perfil');
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
+select fn_estado_reserva(current_setting('test.reserva')::uuid,'confirmada');
+select fn_checkin(current_setting('test.reserva')::uuid);
+select pg_temp.rechaza(format('select fn_checkout(%L)',current_setting('test.reserva')),'check-out sin pago');
+select fn_contratar_servicio(current_setting('test.reserva')::uuid,(select id from servicios_adicionales where hotel_id=current_setting('test.hotel')::uuid limit 1),2);
+select pg_temp.assert((select monto_total=666000 from facturas where reserva_id=current_setting('test.reserva')::uuid),'servicios sumados');
+select fn_registrar_pago(current_setting('test.reserva')::uuid,100000,'efectivo','20000000-0000-0000-0000-000000000001');
+select fn_registrar_pago(current_setting('test.reserva')::uuid,100000,'efectivo','20000000-0000-0000-0000-000000000001');
+select pg_temp.assert((select count(*)=1 from pagos),'idempotencia');
+select pg_temp.rechaza(format('select fn_registrar_pago(%L,900000,''efectivo'',''20000000-0000-0000-0000-000000000002'')',current_setting('test.reserva')),'sobrepago');
+select fn_registrar_pago(current_setting('test.reserva')::uuid,50000,'efectivo','20000000-0000-0000-0000-000000000003','reembolso');
+select fn_registrar_pago(current_setting('test.reserva')::uuid,616000,'transferencia','20000000-0000-0000-0000-000000000004');
+select fn_checkout(current_setting('test.reserva')::uuid);
+select pg_temp.assert((select entrada_en is not null and salida_en is not null and estado='check_out' from reservas where id=current_setting('test.reserva')::uuid),'trazabilidad check-in/out');
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
+select set_config('test.cancelar',(fn_guardar_reserva(current_setting('test.room')::uuid,current_date+5,current_date+7,1,0,null,null,null,'','pendiente')).id::text,true);
+select fn_cancelar_reserva(current_setting('test.cancelar')::uuid);
+select pg_temp.assert((select estado='anulada' from facturas where reserva_id=current_setting('test.cancelar')::uuid),'cancelación anula factura');
+select pg_temp.assert(exists(select 1 from fn_disponibilidad(current_setting('test.hotel')::uuid,current_date+5,current_date+7) where id=current_setting('test.room')::uuid),'cancelación libera disponibilidad');
+reset role;
+-- Check-in de reserva sin cuenta: otro hotel nunca puede operar un cliente NULL.
+insert into huespedes(id,hotel_id,nombre,documento) values('30000000-0000-0000-0000-000000000001',current_setting('test.hotel')::uuid,'Huésped local','PAS-001');
+set local role authenticated;
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
+select set_config('test.local',(fn_guardar_reserva(current_setting('test.room')::uuid,current_date+10,current_date+12,1,0,'30000000-0000-0000-0000-000000000001')).id::text,true);
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000003',true);
+select pg_temp.rechaza(format('select fn_checkin(%L)',current_setting('test.local')),'reserva huésped otro hotel');
+select pg_temp.rechaza(format('select fn_guardar_reserva(%L,current_date+10,current_date+12,1,0,null,%L,1)',current_setting('test.room'),current_setting('test.local')),'editar huésped otro hotel');
+reset role;
+set local role anon;
+select set_config('request.jwt.claim.sub','',true);
+select pg_temp.rechaza(format('select fn_checkin(%L)',current_setting('test.reserva')),'anónimo');
+reset role;
+alter table reservas validate constraint reserva_hotel_habitacion;
+alter table habitaciones validate constraint capacidad_positiva;
+select pg_temp.assert((select count(*)>0 from eventos_reserva),'historial');
+rollback;
+\echo Pruebas de integración completadas; datos de prueba revertidos.
