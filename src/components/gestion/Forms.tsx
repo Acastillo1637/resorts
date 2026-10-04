@@ -2,6 +2,8 @@ import { useState, type ReactNode } from "react";
 import { button, input } from "../AppShell";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../ui/dialog";
 import { errorMensaje } from "@/lib/booking";
+import { enteroPaquete } from "@/lib/package-input";
+import { PrecioCLP } from "./PrecioCLP";
 
 export function Campo({ nombre, children }: { nombre: string; children: ReactNode }) {
   return (
@@ -45,6 +47,8 @@ export interface CampoConfig {
   type?: string;
   required?: boolean;
   min?: number;
+  integer?: boolean;
+  clp?: boolean;
   options?: { value: string; label: string }[];
 }
 export function Formulario({
@@ -69,6 +73,9 @@ export function Formulario({
         setBusy(true);
         setError("");
         try {
+          for (const c of campos)
+            if ((c.integer || c.clp) && (c.required || valores[c.key]))
+              enteroPaquete(valores[c.key] ?? "", c.min ?? 0);
           await guardar(valores);
         } catch (err) {
           setError(errorMensaje(err));
@@ -79,7 +86,13 @@ export function Formulario({
     >
       {campos.map((c) => (
         <Campo key={c.key} nombre={c.label}>
-          {c.options ? (
+          {c.clp ? (
+            <PrecioCLP
+              required={c.required}
+              value={valores[c.key] ?? ""}
+              onChange={(value) => setValores({ ...valores, [c.key]: value })}
+            />
+          ) : c.options ? (
             <select
               className={input}
               required={c.required}
@@ -99,10 +112,19 @@ export function Formulario({
               type={c.type ?? "text"}
               required={c.required}
               min={c.min}
-              step={c.type === "number" ? "0.01" : undefined}
+              step={c.integer ? 1 : c.type === "number" ? "0.01" : undefined}
               maxLength={1000}
               value={valores[c.key] ?? ""}
-              onChange={(e) => setValores({ ...valores, [c.key]: e.target.value })}
+              onKeyDown={(e) => {
+                if (c.integer && [".", ",", "e", "E", "+", "-"].includes(e.key)) e.preventDefault();
+              }}
+              onPaste={(e) => {
+                if (c.integer && !/^\d+$/.test(e.clipboardData.getData("text"))) e.preventDefault();
+              }}
+              onChange={(e) => {
+                if (!c.integer || /^\d*$/.test(e.target.value))
+                  setValores({ ...valores, [c.key]: e.target.value });
+              }}
             />
           )}
         </Campo>

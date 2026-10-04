@@ -49,7 +49,11 @@ export default {
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      const safe = await normalizeCatastrophicSsrResponse(response);
+      safe.headers.set("X-Content-Type-Options", "nosniff");
+      safe.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+      safe.headers.set("X-Frame-Options", "DENY");
+      return safe;
     } catch (error) {
       console.error(error);
       return new Response(renderErrorPage(), {

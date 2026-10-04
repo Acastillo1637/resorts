@@ -1,7 +1,7 @@
+import { errorMensaje } from "@/lib/booking";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { login, rutaPorRol } from "@/lib/auth";
-import { SiteHeader } from "@/components/SiteHeader";
 import { input, button } from "@/components/AppShell";
 import { supabaseConfigured } from "@/lib/supabase";
 export const Route = createFileRoute("/acceso")({ component: Acceso });
@@ -19,23 +19,22 @@ function Acceso() {
       const p = await login(email, password);
       await nav({ to: rutaPorRol(p.rol) } as never);
     } catch (x) {
-      setError(x instanceof Error ? x.message : "No se pudo iniciar sesión");
+      setError(errorMensaje(x));
     } finally {
       setBusy(false);
     }
   }
   return (
     <div className="min-h-screen bg-paper">
-      <SiteHeader />
       <main className="mx-auto max-w-md px-6 py-20">
         <p className="font-mono text-[10px] font-bold uppercase tracking-[.3em] text-accent">
-          Cuenta Maremoto
+          Cuenta Almond Resorts
         </p>
         <h1 className="mt-3 font-display text-5xl font-black tracking-tighter">Bienvenido.</h1>
         <p className="mt-4 text-ink-soft">Accede a tus reservas o al panel de operación.</p>
         {!supabaseConfigured && (
           <p className="mt-6 rounded-2xl bg-accent-soft p-4 text-sm">
-            Falta configurar VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.
+            El acceso no está disponible en este momento. Inténtalo más tarde.
           </p>
         )}
         <form onSubmit={submit} className="mt-10 space-y-4">
@@ -60,6 +59,9 @@ function Acceso() {
             {busy ? "Ingresando…" : "Ingresar"}
           </button>
         </form>
+        <a href="/recuperar" className="mt-5 block text-center text-sm font-bold text-accent">
+          ¿Olvidaste tu contraseña?
+        </a>
         <p className="mt-7 text-center text-sm text-ink-soft">
           ¿Primera vez?{" "}
           <Link to="/registro" className="font-bold text-accent">

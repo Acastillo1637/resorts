@@ -1,8 +1,8 @@
+import { errorMensaje } from "@/lib/booking";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { registrarCliente } from "@/lib/auth";
 import { validarRut, formatearRut } from "@/lib/rut";
-import { SiteHeader } from "@/components/SiteHeader";
 import { input, button } from "@/components/AppShell";
 export const Route = createFileRoute("/registro")({ component: Registro });
 function Registro() {
@@ -25,19 +25,20 @@ function Registro() {
     try {
       const resultado = await registrarCliente({ ...f, rut: formatearRut(f.rut) });
       if (resultado.requiereConfirmacion) {
-        setError("Cuenta creada. Revisa tu correo para confirmar el acceso.");
+        setError(
+          "El registro inmediato aún no está habilitado. Contacta al equipo de Almond Resorts.",
+        );
       } else {
-        await nav({ to: "/mi-cuenta" });
+        await nav({ to: "/mis-reservas" });
       }
     } catch (x) {
-      setError(x instanceof Error ? x.message : "No se pudo crear la cuenta");
+      setError(errorMensaje(x));
     } finally {
       setBusy(false);
     }
   }
   return (
     <div className="min-h-screen bg-paper">
-      <SiteHeader />
       <main className="mx-auto max-w-xl px-6 py-16">
         <p className="font-mono text-[10px] font-bold uppercase tracking-[.3em] text-accent">
           Nuevo huésped

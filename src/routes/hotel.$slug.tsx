@@ -1,24 +1,26 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { BookingInquiry } from "@/components/BookingInquiry";
-import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
-import { hotels, formatCLP } from "@/lib/hotels";
+import { formatCLP } from "@/lib/hotels";
+import { cargarCatalogo } from "@/lib/catalog";
+import { HotelCover } from "@/components/HotelCover";
 
 export const Route = createFileRoute("/hotel/$slug")({
-  loader: ({ params }) => {
+  loader: async ({ params }) => {
+    const hotels = await cargarCatalogo();
     const hotel = hotels.find((h) => h.slug === params.slug);
     if (!hotel) throw notFound();
     return { hotel };
   },
   head: ({ loaderData }) => ({
     meta: [
-      { title: `${loaderData?.hotel.name ?? "Hotel"} — Maremoto` },
+      { title: `${loaderData?.hotel.name ?? "Hotel"} — Almond Resorts` },
       {
         name: "description",
-        content: loaderData?.hotel.description ?? "Reserva tu estadía con Maremoto.",
+        content: loaderData?.hotel.description ?? "Reserva tu estadía con Almond Resorts.",
       },
-      { property: "og:title", content: `${loaderData?.hotel.name ?? "Hotel"} — Maremoto` },
+      { property: "og:title", content: `${loaderData?.hotel.name ?? "Hotel"} — Almond Resorts` },
       { property: "og:description", content: loaderData?.hotel.description ?? "" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -33,8 +35,6 @@ function HotelDetail() {
   const room = hotel.rooms[roomIndex] ?? hotel.rooms[0]!;
   return (
     <div className="min-h-screen overflow-x-hidden bg-paper font-body text-ink antialiased">
-      <SiteHeader />
-
       <section className="mx-auto max-w-7xl px-6 py-14">
         <Link
           to="/"
@@ -46,15 +46,7 @@ function HotelDetail() {
         <div className="mt-8 grid grid-cols-1 items-start gap-10 lg:grid-cols-12">
           {/* GALLERY + INFO */}
           <div className="lg:col-span-7">
-            <div className="overflow-hidden rounded-[32px] bg-sand">
-              <img
-                src={hotel.image}
-                alt={hotel.name}
-                width={1200}
-                height={752}
-                className="aspect-[16/10] w-full object-cover"
-              />
-            </div>
+            <HotelCover image={hotel.image} name={hotel.name} ambient={hotel.imagenAmbiente} />
 
             <div className="mt-10 flex flex-wrap items-end justify-between gap-4">
               <div>
@@ -65,18 +57,28 @@ function HotelDetail() {
                   {hotel.name}
                 </h1>
               </div>
-              <div className="flex items-center gap-2 rounded-2xl bg-cream px-4 py-2 ring-1 ring-ink/5">
-                <span className="font-display text-xl font-black text-accent">
-                  {hotel.rating.toFixed(1)}
-                </span>
-                <span className="text-xs font-medium text-ink-soft">· {hotel.reviews} reseñas</span>
-              </div>
             </div>
 
             <p className="mt-6 max-w-2xl text-lg leading-relaxed text-ink-soft">
               {hotel.description}
             </p>
 
+            {hotel.fuente && (
+              <a
+                href={hotel.fuente}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-4 inline-block text-accent underline"
+              >
+                Sitio oficial del hotel
+              </a>
+            )}
+            {!hotel.reservable && (
+              <p className="mt-4 text-sm text-ink-soft">
+                Tarifas referenciales. Inventario pendiente de validación; aún no hay cupos
+                habilitados en Almond Resorts.
+              </p>
+            )}
             <div className="mt-8 flex flex-wrap gap-2">
               {hotel.amenities.map((a) => (
                 <span
@@ -107,7 +109,7 @@ function HotelDetail() {
                       <p className="text-sm text-ink-soft">{r.detail}</p>
                     </div>
                     <p className="font-display text-lg font-black text-accent">
-                      {formatCLP(r.price)}
+                      {formatCLP(r.price)} / noche
                     </p>
                   </button>
                 ))}
@@ -116,7 +118,12 @@ function HotelDetail() {
           </div>
 
           <div className="lg:col-span-5">
-            <BookingInquiry hotel={hotel.name} precio={room.price} />
+            <BookingInquiry
+              hotel={hotel.name}
+              hotelId={hotel.id}
+              habitacionId={hotel.habitaciones[roomIndex]?.id}
+              precio={room?.price ?? 0}
+            />
           </div>
         </div>
       </section>

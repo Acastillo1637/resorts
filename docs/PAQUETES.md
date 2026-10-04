@@ -1,0 +1,15 @@
+# Paquetes Almond Resorts
+
+Si 07/10/11/12 están aplicadas, ejecutar solo **supabase/13_paquetes_productos.sql** completo en Supabase → SQL Editor → New query → Run. La migración es transaccional e idempotente. No modifica las migraciones previas, no elimina reservas y reutiliza paquetes, paquete_servicios, servicios_adicionales, habitaciones y reservas.
+
+Explorar (`/explorar`) filtra por zona, noches, capacidad y experiencia. Cada producto tiene ficha `/paquete/<id>` con portada propia opcional y fallback a la portada del hotel almacenada en Supabase, condiciones, servicios, precio fijo y vigencia de estancia. Los productos demo Spa, Romántica, Relax y Aventura se generan solo donde existen los servicios pertinentes: no se inventan masajes, cenas ni traslados. Los descuentos demo se calculan sobre el alojamiento de categoría equivalente de la semilla.
+
+La ficha consulta `fn_disponibilidad_paquete` al cambiar fecha o huéspedes. La salida se calcula por noches; se muestran habitaciones compatibles disponibles. Sin cupos se permite probar el día siguiente. La reserva exige sesión de cliente, conserva el borrador después del login y continúa directamente en el portal, sin reconstruir la búsqueda normal.
+
+El servidor bloquea producto/habitación, comprueba vigencia, restricciones, categoría, servicios del hotel y disponibilidad, y ejecuta `fn_guardar_reserva`. La exclusión de rangos continúa impidiendo sobreventa. `fn_reservar_paquete` no recibe importes del navegador; recibe una versión para rechazar un producto que cambió desde que se mostró su precio. La interfaz administrativa incrementa esa versión.
+
+Cada nueva reserva conserva `paquete_precio_contratado` y `paquete_snapshot` (nombre, descripción, duración, precio, condiciones, servicios y sus cantidades/precios). Los servicios incluidos se marcan `incluido_paquete` y conservan `nombre_contratado`. `total_reserva` y la interfaz usan el precio fijo más extras posteriores, sin cobrar dos veces lo incluido. Las reservas antiguas conservan su cálculo y factura; se captura su nombre/composición actuales para que no dependan de futuros cambios. Un paquete contratado puede cancelarse mediante el flujo existente; cambios de fechas, habitación o huéspedes requieren cancelar y reservar otro producto.
+
+Gerencia → Paquetes permite crear, editar precio/condiciones/vigencia/capacidad, seleccionar servicios reales del hotel, activar/desactivar y destacar. Solo gerentes con permiso del hotel pueden usar `fn_guardar_paquete`; público/clientes leen únicamente productos activos. No se permite escritura directa desde el navegador. La sustitución de servicios afecta únicamente al producto, nunca a una reserva histórica.
+
+Validación: `npm run typecheck`, `npm test`, `npm run lint`, `npm run build`; `npm run test:db` ejecuta migración 13 dos veces y `tests/paquetes-productos.sql` en PostgreSQL local efímero. No ejecutar esos tests contra producción. El inventario demo no implica integración con cupos comerciales externos.

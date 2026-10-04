@@ -11,6 +11,8 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { AuthProvider } from "@/components/AuthProvider";
+import { SiteHeader } from "@/components/SiteHeader";
 
 function NotFoundComponent() {
   return (
@@ -35,10 +37,12 @@ function NotFoundComponent() {
 }
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error(error);
+  if (import.meta.env.DEV) console.error(error);
   const router = useRouter();
   useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    reportLovableError(import.meta.env.DEV ? error : new Error("No se pudo cargar la página"), {
+      boundary: "tanstack_root_error_component",
+    });
   }, [error]);
 
   return (
@@ -77,10 +81,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Maremoto — Reservas de hoteles" },
+      { title: "Almond Resorts — Reservas de hoteles" },
       {
         name: "description",
-        content: "Curaduría de hoteles y residencias privadas en Chile y Argentina.",
+        content: "Curaduría de hoteles y residencias privadas en Chile.",
       },
     ],
     links: [
@@ -123,7 +127,10 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <AuthProvider>
+        <SiteHeader />
+        <Outlet />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

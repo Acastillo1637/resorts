@@ -1,5 +1,17 @@
 import { supabase } from "./supabase";
 import type { Habitacion, HotelDB, Huesped, Reserva, Servicio } from "./booking";
+import { reservaVigente } from "./booking";
+export const reservaSelect =
+  "*,estado_vigente,perfiles(nombre,telefono),huespedes!reservas_huesped_id_fkey(*),pagos(*),servicios_contratados(*,servicios_adicionales(nombre))";
+export async function cargarDetalleReserva(id: string) {
+  const { data, error } = await supabase
+    .from("reservas")
+    .select(reservaSelect)
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? reservaVigente(data as unknown as Reserva) : null;
+}
 
 // Paginar evita el límite por defecto de 1000 filas de PostgREST.
 async function todas<T>(tabla: string, select = "*"): Promise<T[]> {
@@ -21,10 +33,7 @@ export async function cargarGestion() {
       todas<HotelDB>("hoteles"),
       todas<Habitacion>("habitaciones"),
       todas<Huesped>("huespedes"),
-      todas<Reserva>(
-        "reservas",
-        "*,perfiles(nombre,telefono),huespedes!reservas_huesped_id_fkey(*),pagos(*),servicios_contratados(*,servicios_adicionales(nombre))",
-      ),
+      todas<Reserva>("reservas", reservaSelect),
       todas<Servicio>("servicios_adicionales"),
       supabase.from("tipos_habitacion").select("*").order("nombre"),
       supabase.from("regiones").select("*").order("nombre"),
@@ -35,7 +44,7 @@ export async function cargarGestion() {
     hoteles,
     habitaciones,
     huespedes,
-    reservas,
+    reservas: reservas.map(reservaVigente),
     servicios,
     tipos: tipos.data as { codigo: string; nombre: string; descripcion: string }[],
     regiones: regiones.data as { id: string; nombre: string }[],

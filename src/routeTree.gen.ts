@@ -11,11 +11,18 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccesoRouteImport } from './routes/acceso'
+import { Route as ExplorarRouteImport } from './routes/explorar'
 import { Route as GerenciaRouteImport } from './routes/gerencia'
+import { Route as HotelesRouteImport } from './routes/hoteles'
 import { Route as MiCuentaRouteImport } from './routes/mi-cuenta'
+import { Route as MisReservasRouteImport } from './routes/mis-reservas'
+import { Route as NuevaClaveRouteImport } from './routes/nueva-clave'
 import { Route as RecepcionRouteImport } from './routes/recepcion'
+import { Route as RecuperarRouteImport } from './routes/recuperar'
 import { Route as RegistroRouteImport } from './routes/registro'
 import { Route as HotelSlugRouteImport } from './routes/hotel.$slug'
+import { Route as InformacionPaginaRouteImport } from './routes/informacion.$pagina'
+import { Route as PaqueteIdRouteImport } from './routes/paquete.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -27,9 +34,19 @@ const AccesoRoute = AccesoRouteImport.update({
   path: '/acceso',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ExplorarRoute = ExplorarRouteImport.update({
+  id: '/explorar',
+  path: '/explorar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GerenciaRoute = GerenciaRouteImport.update({
   id: '/gerencia',
   path: '/gerencia',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HotelesRoute = HotelesRouteImport.update({
+  id: '/hoteles',
+  path: '/hoteles',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MiCuentaRoute = MiCuentaRouteImport.update({
@@ -37,9 +54,24 @@ const MiCuentaRoute = MiCuentaRouteImport.update({
   path: '/mi-cuenta',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MisReservasRoute = MisReservasRouteImport.update({
+  id: '/mis-reservas',
+  path: '/mis-reservas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NuevaClaveRoute = NuevaClaveRouteImport.update({
+  id: '/nueva-clave',
+  path: '/nueva-clave',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RecepcionRoute = RecepcionRouteImport.update({
   id: '/recepcion',
   path: '/recepcion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecuperarRoute = RecuperarRouteImport.update({
+  id: '/recuperar',
+  path: '/recuperar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegistroRoute = RegistroRouteImport.update({
@@ -52,73 +84,132 @@ const HotelSlugRoute = HotelSlugRouteImport.update({
   path: '/hotel/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InformacionPaginaRoute = InformacionPaginaRouteImport.update({
+  id: '/informacion/$pagina',
+  path: '/informacion/$pagina',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaqueteIdRoute = PaqueteIdRouteImport.update({
+  id: '/paquete/$id',
+  path: '/paquete/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/acceso': typeof AccesoRoute
+  '/explorar': typeof ExplorarRoute
   '/gerencia': typeof GerenciaRoute
+  '/hoteles': typeof HotelesRoute
   '/mi-cuenta': typeof MiCuentaRoute
+  '/mis-reservas': typeof MisReservasRoute
+  '/nueva-clave': typeof NuevaClaveRoute
   '/recepcion': typeof RecepcionRoute
+  '/recuperar': typeof RecuperarRoute
   '/registro': typeof RegistroRoute
   '/hotel/$slug': typeof HotelSlugRoute
+  '/informacion/$pagina': typeof InformacionPaginaRoute
+  '/paquete/$id': typeof PaqueteIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/acceso': typeof AccesoRoute
+  '/explorar': typeof ExplorarRoute
   '/gerencia': typeof GerenciaRoute
+  '/hoteles': typeof HotelesRoute
   '/mi-cuenta': typeof MiCuentaRoute
+  '/mis-reservas': typeof MisReservasRoute
+  '/nueva-clave': typeof NuevaClaveRoute
   '/recepcion': typeof RecepcionRoute
+  '/recuperar': typeof RecuperarRoute
   '/registro': typeof RegistroRoute
   '/hotel/$slug': typeof HotelSlugRoute
+  '/informacion/$pagina': typeof InformacionPaginaRoute
+  '/paquete/$id': typeof PaqueteIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/acceso': typeof AccesoRoute
+  '/explorar': typeof ExplorarRoute
   '/gerencia': typeof GerenciaRoute
+  '/hoteles': typeof HotelesRoute
   '/mi-cuenta': typeof MiCuentaRoute
+  '/mis-reservas': typeof MisReservasRoute
+  '/nueva-clave': typeof NuevaClaveRoute
   '/recepcion': typeof RecepcionRoute
+  '/recuperar': typeof RecuperarRoute
   '/registro': typeof RegistroRoute
   '/hotel/$slug': typeof HotelSlugRoute
+  '/informacion/$pagina': typeof InformacionPaginaRoute
+  '/paquete/$id': typeof PaqueteIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/acceso'
+    | '/explorar'
     | '/gerencia'
+    | '/hoteles'
     | '/mi-cuenta'
+    | '/mis-reservas'
+    | '/nueva-clave'
     | '/recepcion'
+    | '/recuperar'
     | '/registro'
     | '/hotel/$slug'
+    | '/informacion/$pagina'
+    | '/paquete/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/acceso'
+    | '/explorar'
     | '/gerencia'
+    | '/hoteles'
     | '/mi-cuenta'
+    | '/mis-reservas'
+    | '/nueva-clave'
     | '/recepcion'
+    | '/recuperar'
     | '/registro'
     | '/hotel/$slug'
+    | '/informacion/$pagina'
+    | '/paquete/$id'
   id:
     | '__root__'
     | '/'
     | '/acceso'
+    | '/explorar'
     | '/gerencia'
+    | '/hoteles'
     | '/mi-cuenta'
+    | '/mis-reservas'
+    | '/nueva-clave'
     | '/recepcion'
+    | '/recuperar'
     | '/registro'
     | '/hotel/$slug'
+    | '/informacion/$pagina'
+    | '/paquete/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccesoRoute: typeof AccesoRoute
+  ExplorarRoute: typeof ExplorarRoute
   GerenciaRoute: typeof GerenciaRoute
+  HotelesRoute: typeof HotelesRoute
   MiCuentaRoute: typeof MiCuentaRoute
+  MisReservasRoute: typeof MisReservasRoute
+  NuevaClaveRoute: typeof NuevaClaveRoute
   RecepcionRoute: typeof RecepcionRoute
+  RecuperarRoute: typeof RecuperarRoute
   RegistroRoute: typeof RegistroRoute
   HotelSlugRoute: typeof HotelSlugRoute
+  InformacionPaginaRoute: typeof InformacionPaginaRoute
+  PaqueteIdRoute: typeof PaqueteIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -137,11 +228,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccesoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/explorar': {
+      id: '/explorar'
+      path: '/explorar'
+      fullPath: '/explorar'
+      preLoaderRoute: typeof ExplorarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/gerencia': {
       id: '/gerencia'
       path: '/gerencia'
       fullPath: '/gerencia'
       preLoaderRoute: typeof GerenciaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hoteles': {
+      id: '/hoteles'
+      path: '/hoteles'
+      fullPath: '/hoteles'
+      preLoaderRoute: typeof HotelesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mi-cuenta': {
@@ -151,11 +256,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MiCuentaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mis-reservas': {
+      id: '/mis-reservas'
+      path: '/mis-reservas'
+      fullPath: '/mis-reservas'
+      preLoaderRoute: typeof MisReservasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/nueva-clave': {
+      id: '/nueva-clave'
+      path: '/nueva-clave'
+      fullPath: '/nueva-clave'
+      preLoaderRoute: typeof NuevaClaveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/recepcion': {
       id: '/recepcion'
       path: '/recepcion'
       fullPath: '/recepcion'
       preLoaderRoute: typeof RecepcionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recuperar': {
+      id: '/recuperar'
+      path: '/recuperar'
+      fullPath: '/recuperar'
+      preLoaderRoute: typeof RecuperarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/registro': {
@@ -172,17 +298,38 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HotelSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/informacion/$pagina': {
+      id: '/informacion/$pagina'
+      path: '/informacion/$pagina'
+      fullPath: '/informacion/$pagina'
+      preLoaderRoute: typeof InformacionPaginaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/paquete/$id': {
+      id: '/paquete/$id'
+      path: '/paquete/$id'
+      fullPath: '/paquete/$id'
+      preLoaderRoute: typeof PaqueteIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccesoRoute: AccesoRoute,
+  ExplorarRoute: ExplorarRoute,
   GerenciaRoute: GerenciaRoute,
+  HotelesRoute: HotelesRoute,
   MiCuentaRoute: MiCuentaRoute,
+  MisReservasRoute: MisReservasRoute,
+  NuevaClaveRoute: NuevaClaveRoute,
   RecepcionRoute: RecepcionRoute,
+  RecuperarRoute: RecuperarRoute,
   RegistroRoute: RegistroRoute,
   HotelSlugRoute: HotelSlugRoute,
+  InformacionPaginaRoute: InformacionPaginaRoute,
+  PaqueteIdRoute: PaqueteIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

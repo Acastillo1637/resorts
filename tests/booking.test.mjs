@@ -45,3 +45,20 @@ test("precio histórico más servicios, pagos menos reembolsos", () => {
   assert.equal(pagado(r), 75000);
 });
 test("sumar días cruza mes y año", () => assert.equal(sumarDias("2026-12-31", 1), "2027-01-01"));
+test("paquete: precio fijo histórico sin sumar dos veces servicios incluidos", () => {
+  const r = {
+    fecha_inicio: "2026-10-01",
+    fecha_fin: "2026-10-04",
+    tarifa_noche: 200000,
+    paquete_precio_contratado: 450000,
+    servicios_contratados: [
+      { cantidad: 2, precio_unitario: 30000, incluido_paquete: true },
+      { cantidad: 1, precio_unitario: 15000, incluido_paquete: false },
+    ],
+  };
+  assert.equal(totalReserva(r), 465000);
+  r.tarifa_noche = 999999;
+  assert.equal(totalReserva(r), 465000);
+  r.paquete_precio_contratado = 0;
+  assert.equal(totalReserva(r), 15000);
+});

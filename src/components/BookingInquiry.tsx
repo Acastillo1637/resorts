@@ -1,6 +1,16 @@
 import { useState } from "react";
 import { hoy, moneda, noches, sumarDias } from "@/lib/booking";
-export function BookingInquiry({ hotel, precio }: { hotel: string; precio: number }) {
+export function BookingInquiry({
+  hotel,
+  hotelId,
+  habitacionId,
+  precio,
+}: {
+  hotel: string;
+  hotelId: string;
+  habitacionId?: string | undefined;
+  precio: number;
+}) {
   const [inicio, setInicio] = useState(hoy());
   const [fin, setFin] = useState(sumarDias(hoy(), 1));
   return (
@@ -8,8 +18,11 @@ export function BookingInquiry({ hotel, precio }: { hotel: string; precio: numbe
       className="space-y-5 rounded-[28px] bg-ink p-8 text-cream"
       onSubmit={(e) => {
         e.preventDefault();
-        sessionStorage.setItem("maremoto-busqueda", JSON.stringify({ hotel, inicio, fin }));
-        window.location.href = "/mi-cuenta";
+        sessionStorage.setItem(
+          "maremoto-busqueda",
+          JSON.stringify({ hotel, hotelId, habitacionId, inicio, fin }),
+        );
+        window.location.href = "/mis-reservas";
       }}
     >
       <h2 className="font-display text-2xl font-black">Planifica tu estadía</h2>

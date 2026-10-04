@@ -1,12 +1,10 @@
--- Ampliación no destructiva. Ejecutar una vez después de 01–06.
+-- Ampliación no destructiva e idempotente. Ejecutar después de 01–06.
 begin;
 create table if not exists migraciones_maremoto(version integer primary key, aplicada_en timestamptz default now());
-do $$ begin
+do $migration$ begin
   if exists(select 1 from migraciones_maremoto where version=7) then
-    raise exception 'Migración 7 ya aplicada';
+    return;
   end if;
-end $$;
-
 alter function mi_rol() set search_path = public;
 alter function mi_hotel() set search_path = public;
 alter function fn_auditar() set search_path = public;
@@ -234,4 +232,6 @@ alter table habitaciones add constraint numero_valido check(length(trim(numero))
 alter table servicios_adicionales add constraint servicio_nombre_valido check(length(trim(nombre)) between 2 and 150) not valid;
 alter table perfiles add constraint perfil_nombre_valido check(length(trim(nombre)) between 2 and 150) not valid;
 insert into migraciones_maremoto(version) values(7);
+end $migration$;
+notify pgrst, 'reload schema';
 commit;

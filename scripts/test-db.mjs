@@ -38,9 +38,24 @@ try {
     "supabase/05_parche_seguridad_funciones.sql",
     "supabase/06_realtime.sql",
     "supabase/07_gestion_hotelera.sql",
+    "supabase/07_gestion_hotelera.sql",
     "tests/integration.sql",
     "supabase/08_datos_demo.sql",
     "supabase/08_datos_demo.sql",
+    "supabase/10_almond_catalogo.sql",
+    "supabase/11_hoteles_chile.sql",
+    "supabase/10_almond_catalogo.sql",
+    "supabase/11_hoteles_chile.sql",
+    "tests/almond.sql",
+    "supabase/12_inventario_demo_portadas.sql",
+    "supabase/12_inventario_demo_portadas.sql",
+    "tests/inventario-demo.sql",
+    "supabase/13_paquetes_productos.sql",
+    "supabase/13_paquetes_productos.sql",
+    "tests/paquetes-productos.sql",
+    "supabase/14_normalizacion_seguridad.sql",
+    "supabase/14_normalizacion_seguridad.sql",
+    "tests/hardening.sql",
   ];
   execFileSync(exe("psql"), [...psql, ...files.flatMap((f) => ["-f", f])], {
     stdio: ["ignore", "ignore", "inherit"],
@@ -57,7 +72,7 @@ try {
   )
     throw new Error("Falló la protección concurrente: " + JSON.stringify(results));
   console.log(
-    "OK: migraciones 01–07, integración/RLS, registro Auth, semilla idempotente y dos reservas concurrentes.",
+    "OK: migraciones 01–14, hardening, paquetes/precios históricos/RLS, registro Auth, semillas idempotentes y reservas concurrentes.",
   );
 } finally {
   // Solo elimina la base efímera cuyo nombre se generó en este proceso.

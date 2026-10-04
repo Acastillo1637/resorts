@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useLocation } from "@tanstack/react-router";
 import { AppShell, button, card, input } from "../AppShell";
-import { getPerfil, type Perfil, type Rol } from "@/lib/auth";
-import { supabase, supabaseConfigured } from "@/lib/supabase";
+import { rutaPorRol, type Rol } from "@/lib/auth";
+import { accesoPanel, accesoReserva, esGerencia } from "@/lib/roles";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/hooks/use-auth";
 import { cargarGestion } from "@/lib/gestion";
 import {
   estados,
+  estadoVisible,
+  filtrarReservas,
   errorMensaje,
   hoy,
   moneda,
@@ -21,16 +25,19 @@ import { Campo, Editor } from "./Forms";
 import { ReservaForm } from "./ReservaForm";
 import { Catalogos } from "./Catalogos";
 import { DetalleReserva } from "./DetalleReserva";
+import { PaquetesGestion } from "./PaquetesGestion";
 
-export function PanelGestion({ rol }: { rol: Rol }) {
+export function PanelGestion({ rol, crearPaquete = false }: { rol: Rol; crearPaquete?: boolean }) {
   const nav = useNavigate();
+  const navigationKey = useLocation({ select: (location) => location.state.__TSR_key });
   const qc = useQueryClient();
-  const [perfil, setPerfil] = useState<Perfil | null>(null);
-  const [authError, setAuthError] = useState("");
+  const auth = useAuth();
+  const perfil = auth.session && accesoPanel(auth.perfil, rol) ? auth.perfil : null;
+  const authError = auth.error;
   const [hotel, setHotel] = useState("");
   const [tab, setTab] = useState("Resumen");
   const [busqueda, setBusqueda] = useState("");
-  const [estado, setEstado] = useState("");
+  const [estado, setEstado] = useState("activas");
   const [habitacion, setHabitacion] = useState("");
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
@@ -39,41 +46,44 @@ export function PanelGestion({ rol }: { rol: Rol }) {
   const [id, setId] = useState("");
   const [mensaje, setMensaje] = useState("");
   useEffect(() => {
-    let activo = true;
-    async function comprobar() {
-      try {
-        if (!supabaseConfigured) throw new Error("Configura Supabase para acceder a la gestión.");
-        const p = await getPerfil();
-        if (!activo) return;
-        if (!p || p.rol !== rol) {
-          await nav({ to: "/acceso" });
-          return;
-        }
-        setPerfil(p);
-        setHotel(p.hotel_id ?? "");
-      } catch (e) {
-        if (activo) setAuthError(errorMensaje(e));
-      }
-    }
-    void comprobar();
-    const { data } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_OUT") {
+    if (auth.loading || auth.profileLoading) return;
+    if (!auth.session) {
+      if (!auth.error) {
         qc.clear();
         void nav({ to: "/acceso" });
       }
-    });
-    return () => {
-      activo = false;
-      data.subscription.unsubscribe();
-    };
-  }, [nav, qc, rol]);
+      return;
+    }
+    if (auth.perfil && !accesoPanel(auth.perfil, rol)) {
+      if (auth.perfil.rol !== rol) void nav({ to: rutaPorRol(auth.perfil.rol) } as never);
+      return;
+    }
+  }, [
+    nav,
+    qc,
+    rol,
+    auth.loading,
+    auth.profileLoading,
+    auth.session,
+    auth.perfil,
+    auth.error,
+    perfil,
+  ]);
+  useEffect(() => {
+    setHotel(perfil?.hotel_id ?? "");
+    setModal(null);
+    setHabitacion("");
+  }, [perfil?.id, perfil?.rol, perfil?.hotel_id]);
   const query = useQuery({
-    queryKey: ["gestion", perfil?.id],
+    queryKey: ["gestion", perfil?.id, perfil?.rol, perfil?.hotel_id],
     queryFn: cargarGestion,
     enabled: !!perfil,
     refetchInterval: 60000,
   });
   const datos = query.data;
+  useEffect(() => {
+    if (crearPaquete && perfil && esGerencia(perfil.rol)) setTab("Paquetes");
+  }, [crearPaquete, perfil, navigationKey]);
   useEffect(() => {
     if (!perfil) return;
     const ch = supabase
@@ -92,17 +102,24 @@ export function PanelGestion({ rol }: { rol: Rol }) {
     await qc.invalidateQueries({ queryKey: ["gestion"] });
   }
   function ver(r: Reserva) {
+    if (!accesoReserva(perfil, r.hotel_id)) {
+      setMensaje("No autorizado para este hotel");
+      return;
+    }
     setId(r.id);
     setModal("detalle");
   }
   if (!perfil)
     return (
       <main className="p-10" role="status">
-        {authError || "Verificando acceso…"}
+        {authError ||
+          (auth.perfil && !accesoPanel(auth.perfil, rol)
+            ? "Tu perfil no tiene acceso a este panel o no tiene un hotel válido asignado."
+            : "Verificando acceso…")}
         {authError && (
-          <a className="ml-4 underline" href="/acceso">
-            Volver al acceso
-          </a>
+          <button className="ml-4 underline" onClick={auth.retry}>
+            Reintentar
+          </button>
         )}
       </main>
     );
@@ -124,10 +141,9 @@ export function PanelGestion({ rol }: { rol: Rol }) {
     (h) => (!hotel || h.hotel_id === hotel) && (!perfil.hotel_id || h.hotel_id === perfil.hotel_id),
   );
   const all = datos.reservas.filter((r) => !hotel || r.hotel_id === hotel);
-  const reservas = all
+  const reservas = filtrarReservas(all, estado)
     .filter(
       (r) =>
-        (!estado || r.estado === estado) &&
         (!habitacion || r.habitacion_id === habitacion) &&
         (!desde || r.fecha_fin > desde) &&
         (!hasta || r.fecha_inicio <= hasta) &&
@@ -136,8 +152,11 @@ export function PanelGestion({ rol }: { rol: Rol }) {
           .includes(busqueda.toLowerCase()),
     )
     .sort((a, b) => a.fecha_inicio.localeCompare(b.fecha_inicio));
-  const activas = all.filter((r) => ["pendiente", "confirmada", "check_in"].includes(r.estado));
-  const ocupadas = new Set(all.filter((r) => r.estado === "check_in").map((r) => r.habitacion_id));
+  const activas = filtrarReservas(all, "activas");
+  const regularizacion = filtrarReservas(all, "regularizacion");
+  const ocupadas = new Set(
+    activas.filter((r) => r.estado === "check_in").map((r) => r.habitacion_id),
+  );
   const disponibles = rooms.filter(
     (h) =>
       h.estado === "activa" &&
@@ -154,8 +173,9 @@ export function PanelGestion({ rol }: { rol: Rol }) {
     ["Alojados", ocupadas.size],
     ["Disponibles hoy", disponibles.length],
     ["Ocupación", `${denominador ? Math.round((ocupadas.size / denominador) * 100) : 0}%`],
-    ["Pendientes", all.filter((r) => r.estado === "pendiente").length],
-    ["Confirmadas", all.filter((r) => r.estado === "confirmada").length],
+    ["Pendientes", activas.filter((r) => r.estado === "pendiente").length],
+    ["Confirmadas", activas.filter((r) => r.estado === "confirmada").length],
+    ["Sin checkout · regularizar", regularizacion.length],
     ["Canceladas", all.filter((r) => r.estado === "cancelada").length],
     ["Cobros netos", moneda(all.reduce((n, r) => n + pagado(r), 0))],
   ];
@@ -202,7 +222,7 @@ export function PanelGestion({ rol }: { rol: Rol }) {
                 </td>
                 <td className="p-3">
                   <span className="rounded-full bg-accent-soft px-3 py-1 text-xs">
-                    {estados[r.estado]}
+                    {estados[estadoVisible(r)]}
                   </span>
                 </td>
                 <td className="whitespace-nowrap p-3">
@@ -226,27 +246,38 @@ export function PanelGestion({ rol }: { rol: Rol }) {
   return (
     <AppShell
       perfil={perfil}
-      eyebrow={rol === "gerente" ? "Gerencia" : "Recepción"}
+      eyebrow={
+        perfil.rol === "gerente_general"
+          ? "Gerencia General · Vista global"
+          : rol === "gerente"
+            ? "Gerencia"
+            : "Recepción"
+      }
       title="Gestión de estadías"
     >
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <Campo nombre="Establecimiento">
-          <select
-            className={input}
-            value={hotel}
-            disabled={!!perfil.hotel_id}
-            onChange={(e) => {
-              setHotel(e.target.value);
-              setHabitacion("");
-            }}
-          >
-            <option value="">Todos los hoteles</option>
-            {hoteles.map((h) => (
-              <option key={h.id} value={h.id}>
-                {h.nombre}
-              </option>
-            ))}
-          </select>
+          {perfil.rol === "gerente_general" ? (
+            <select
+              className={input}
+              value={hotel}
+              disabled={!!perfil.hotel_id}
+              onChange={(e) => {
+                setHotel(e.target.value);
+                setHabitacion("");
+                setModal(null);
+              }}
+            >
+              <option value="">Todos los hoteles</option>
+              {hoteles.map((h) => (
+                <option key={h.id} value={h.id}>
+                  {h.nombre}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <p className="py-3 font-semibold">{hotelNombre(perfil.hotel_id ?? "")}</p>
+          )}
         </Campo>
         <button className={button} disabled={!hotel} onClick={() => setModal("crear")}>
           Nueva reserva
@@ -264,8 +295,7 @@ export function PanelGestion({ rol }: { rol: Rol }) {
           "Calendario",
           "Huéspedes",
           "Habitaciones",
-          "Hoteles",
-          "Servicios",
+          ...(esGerencia(perfil.rol) ? ["Hoteles", "Servicios", "Paquetes"] : []),
         ].map((t) => (
           <button
             key={t}
@@ -283,6 +313,16 @@ export function PanelGestion({ rol }: { rol: Rol }) {
         </p>
       )}
       {query.error && <p role="alert">No se pudo actualizar: {errorMensaje(query.error)}</p>}
+      {regularizacion.length > 0 && (
+        <section className={`${card} mb-6 border border-amber-800/20`}>
+          <h2 className="mb-3 text-xl font-bold">Estadías vencidas · pendientes de checkout</h2>
+          <p className="mb-3 text-sm">
+            La fecha de salida pasó y siguen registradas como alojadas. Revisa el saldo y registra
+            el checkout real para regularizar el cierre.
+          </p>
+          {tabla(regularizacion)}
+        </section>
+      )}
       {tab === "Resumen" && (
         <div className="space-y-8">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -311,7 +351,7 @@ export function PanelGestion({ rol }: { rol: Rol }) {
           <section className={card}>
             <h2 className="mb-4 text-xl font-bold">Próximas salidas y salidas atrasadas</h2>
             {tabla(
-              all.filter((r) => r.estado === "check_in" && r.fecha_fin <= sumarDias(hoy(), 7)),
+              activas.filter((r) => r.estado === "check_in" && r.fecha_fin <= sumarDias(hoy(), 7)),
             )}
           </section>
         </div>
@@ -328,7 +368,10 @@ export function PanelGestion({ rol }: { rol: Rol }) {
             </Campo>
             <Campo nombre="Estado">
               <select className={input} value={estado} onChange={(e) => setEstado(e.target.value)}>
-                <option value="">Todos</option>
+                <option value="activas">Activas</option>
+                <option value="historial">Historial · cerradas, vencidas y canceladas</option>
+                <option value="regularizacion">Sin checkout · pendientes de regularización</option>
+                <option value="">Todas</option>
                 {Object.entries(estados).map(([k, v]) => (
                   <option key={k} value={k}>
                     {v}
@@ -421,7 +464,7 @@ export function PanelGestion({ rol }: { rol: Rol }) {
                               className={`min-w-20 rounded-lg p-2 text-xs ${r.estado === "check_in" ? "bg-green-100" : r.estado === "pendiente" ? "bg-amber-100" : "bg-accent-soft"}`}
                               onClick={() => ver(r)}
                             >
-                              {estados[r.estado]}
+                              {estados[estadoVisible(r)]}
                             </button>
                           ) : (
                             <span className="block min-w-20 rounded-lg bg-paper p-2 text-center text-xs">
@@ -448,6 +491,15 @@ export function PanelGestion({ rol }: { rol: Rol }) {
           listo={listo}
         />
       )}
+      {tab === "Paquetes" && esGerencia(perfil.rol) && (
+        <PaquetesGestion
+          key={`${hotel}-${navigationKey ?? ""}`}
+          datos={datos}
+          hotel={hotel}
+          perfil={perfil}
+          crear={crearPaquete}
+        />
+      )}
       {tab === "Huéspedes" && (
         <section className={`${card} mt-5`}>
           <h2 className="mb-4 font-bold">Huéspedes con cuenta web · historial</h2>
@@ -467,11 +519,11 @@ export function PanelGestion({ rol }: { rol: Rol }) {
           />
         </Editor>
       )}
-      {modal === "detalle" && detalle && (
-        <Editor titulo={`Reserva ${detalle.id.slice(0, 8)}`} cerrar={() => setModal(null)}>
+      {modal === "detalle" && (
+        <Editor titulo={`Reserva ${id.slice(0, 8)}`} cerrar={() => setModal(null)}>
           <DetalleReserva
-            key={detalle.id}
-            r={detalle}
+            key={id}
+            reservaId={id}
             datos={datos}
             listo={listo}
             editar={() => setModal("editar")}

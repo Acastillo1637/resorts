@@ -1,6 +1,9 @@
 import { supabase } from "./supabase";
+import { authRedirect } from "./auth-redirect";
 
-export type Rol = "cliente" | "recepcionista" | "gerente";
+export type { Rol } from "./roles";
+export { rutaPorRol } from "./roles";
+import type { Rol } from "./roles";
 export interface Perfil {
   id: string;
   rut: string;
@@ -15,24 +18,21 @@ export async function getPerfil(): Promise<Perfil | null> {
     data: { session },
   } = await supabase.auth.getSession();
   if (!session) return null;
-  const { data, error } = await supabase
-    .from("perfiles")
-    .select("*")
-    .eq("id", session.user.id)
-    .single();
-  if (error) return null;
-  return data as Perfil;
+  return cargarPerfil(session.user.id);
 }
-
-export function rutaPorRol(rol: Rol) {
-  return rol === "cliente" ? "/mi-cuenta" : rol === "recepcionista" ? "/recepcion" : "/gerencia";
+export async function cargarPerfil(id: string): Promise<Perfil | null> {
+  const { data, error } = await supabase.from("perfiles").select("*").eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data as Perfil;
 }
 
 export async function login(email: string, password: string) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw error;
   const perfil = await getPerfil();
-  if (!perfil) throw new Error("La cuenta no tiene un perfil asociado.");
+  if (!perfil) {
+    throw new Error("La cuenta no tiene un perfil asociado.");
+  }
   return perfil;
 }
 
@@ -47,15 +47,17 @@ export async function registrarCliente(input: {
     email: input.email,
     password: input.password,
     options: {
+      emailRedirectTo: authRedirect(window.location.origin, "/mis-reservas"),
       data: { rut: input.rut, nombre: input.nombre.trim(), telefono: input.telefono || null },
     },
   });
   if (error) throw error;
-  if (!data.user) throw new Error("Revisa tu correo para confirmar la cuenta.");
+  if (!data.user) throw new Error("No se pudo crear la cuenta. Inténtalo nuevamente.");
   return { user: data.user, requiereConfirmacion: !data.session };
 }
 
 export async function logout() {
-  await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
   window.location.href = "/";
 }

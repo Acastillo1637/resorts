@@ -4,6 +4,7 @@ import { Editor, Formulario, type CampoConfig } from "./Forms";
 import { guardar, type Gestion } from "@/lib/gestion";
 import { moneda } from "@/lib/booking";
 import type { Perfil } from "@/lib/auth";
+import { esGerencia } from "@/lib/roles";
 const opts = (v: string[]) => v.map((value) => ({ value, label: value }));
 export function Catalogos({
   tab,
@@ -23,7 +24,7 @@ export function Catalogos({
     values: Record<string, string>;
     tipo?: boolean;
   } | null>(null);
-  const gerente = perfil.rol === "gerente";
+  const gerente = esGerencia(perfil.rol);
   const campos: Record<string, CampoConfig[]> = {
     Hoteles: [
       { key: "nombre", label: "Nombre", required: true },
@@ -35,7 +36,37 @@ export function Catalogos({
       },
       { key: "direccion", label: "Dirección", required: true },
       { key: "descripcion", label: "Descripción" },
-      { key: "servicios", label: "Servicios (separados por coma)" },
+      {
+        key: "zona",
+        label: "Destino",
+        options: opts(["Desierto", "Litoral", "Patagonia", "Andes"]),
+      },
+      { key: "imagen_url", label: "Portada (URL HTTPS o ruta /images/hoteles/)" },
+      {
+        key: "imagen_ambiente",
+        label: "Imagen de ambiente",
+        options: [
+          { value: "true", label: "Sí" },
+          { value: "false", label: "No, fotografía oficial" },
+        ],
+      },
+      { key: "fuente_url", label: "Sitio oficial" },
+      {
+        key: "destacado",
+        label: "Destacado",
+        options: [
+          { value: "true", label: "Sí" },
+          { value: "false", label: "No" },
+        ],
+      },
+      {
+        key: "reservable",
+        label: "Reservas habilitadas",
+        options: [
+          { value: "true", label: "Habilitar reservas" },
+          { value: "false", label: "Pendiente de validación" },
+        ],
+      },
       { key: "estado", label: "Estado", required: true, options: opts(["activo", "inactivo"]) },
     ],
     Habitaciones: [
@@ -99,7 +130,9 @@ export function Catalogos({
       : tab === "Huéspedes"
         ? datos.huespedes
         : datos.servicios) as unknown as Record<string, unknown>[];
-  const rows = records.filter((x) => tab === "Hoteles" || !hotel || x["hotel_id"] === hotel);
+  const rows = records.filter(
+    (x) => !hotel || (tab === "Hoteles" ? x["id"] === hotel : x["hotel_id"] === hotel),
+  );
   const puedeEditar = gerente || ["Huéspedes", "Servicios"].includes(tab);
   return (
     <section className={card}>
@@ -189,12 +222,22 @@ export function Catalogos({
                 : (campos[tab] ?? []))
                 values[c.key] = v[c.key] ?? "";
               if (!edit.tipo) {
+                if (tab === "Hoteles") {
+                  values["destacado"] = v["destacado"] === "true";
+                  values["reservable"] = v["reservable"] === "true";
+                  values["imagen_ambiente"] = v["imagen_ambiente"] === "true";
+                  if (!v["zona"]) values["zona"] = "Andes";
+                  for (const key of ["imagen_url", "fuente_url"]) {
+                    if (
+                      key === "imagen_url" &&
+                      /^\/images\/hoteles\/[a-z0-9-]+\.(jpg|png|webp)$/i.test(v[key] ?? "")
+                    )
+                      continue;
+                    if (v[key] && !/^https:\/\//i.test(v[key]))
+                      throw new Error("Las URL deben comenzar con https://");
+                  }
+                }
                 if (tab !== "Hoteles") values["hotel_id"] = edit.values["hotel_id"] || hotel;
-                if (tab === "Hoteles")
-                  values["servicios"] = (v["servicios"] ?? "")
-                    .split(",")
-                    .map((s) => s.trim())
-                    .filter(Boolean);
                 if (tab === "Habitaciones") {
                   values["capacidad"] = Number(v["capacidad"]);
                   values["precio_noche"] = Number(v["precio_noche"]);
