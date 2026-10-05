@@ -52,7 +52,7 @@ export function BookingInquiry({
         />
       </label>
       <p>
-        {noches(inicio, fin)} noches · Precio orientativo: {moneda(noches(inicio, fin) * precio)}
+        {noches(inicio, fin)} noches · Precio estimado: {moneda(noches(inicio, fin) * precio)}
       </p>
       <button
         className="w-full rounded-2xl bg-accent px-5 py-4 text-sm font-bold"

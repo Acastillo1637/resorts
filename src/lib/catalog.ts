@@ -2,6 +2,26 @@ import { supabase } from "./supabase";
 import type { Hotel } from "./hotels";
 import type { Habitacion, Servicio } from "./booking";
 
+const hotelImages: Record<string, string> = {
+  "noi-casa-atacama": "/images/hoteles/noi-casa-atacama.jpg",
+  "noi-vitacura": "/images/hoteles/noi-vitacura.jpg",
+  "noi-puma-lodge": "/images/hoteles/noi-puma-lodge.jpg",
+  "noi-blend-colchagua": "/images/hoteles/noi-blend-colchagua.jpg",
+  "noi-indigo-patagonia": "/images/hoteles/noi-indigo-patagonia.jpg",
+  "tierra-atacama": "/images/hoteles/tierra-atacama.webp",
+  "tierra-patagonia": "/images/hoteles/tierra-patagonia.webp",
+  "explora-atacama": "/images/hoteles/explora-atacama.jpg",
+  "explora-torres-del-paine": "/images/hoteles/explora-torres-del-paine.jpg",
+  "explora-rapa-nui": "/images/hoteles/explora-rapa-nui.jpg",
+  "hotel-portillo": "/images/hoteles/hotel-portillo.jpg",
+  "antumalal": "/images/hoteles/antumalal.jpg",
+  "hotel-costa-real": "/images/hoteles/hotel-costa-real.jpg",
+  "resort-las-condes": "/images/hoteles/hotel-lascondes.webp",
+  "resort-puerto-varas": "/images/hoteles/puerto-varas.avif",
+  "resort-santiago-centro": "/images/hoteles/resorts-santiago-centro.webp",
+  "resort-vina-del-mar": "/images/hoteles/viña-del-mar.webp",
+};
+
 export interface CatalogHotel extends Hotel {
   id: string;
   zona: string;
@@ -51,6 +71,9 @@ export async function cargarCatalogo(): Promise<CatalogHotel[]> {
   return (data ?? []).map((h: Record<string, unknown>) => {
     const habitaciones = h["habitaciones"] as Habitacion[];
     const servicios = h["servicios"] as Servicio[];
+
+    console.log("HOTEL:", h["nombre"], "SLUG:", h["slug"]);
+
     return {
       id: String(h["id"]),
       slug: String(h["slug"]),
@@ -63,7 +86,7 @@ export async function cargarCatalogo(): Promise<CatalogHotel[]> {
       reservable: Boolean(h["reservable"]),
       inventarioDemo: Boolean(h["inventario_demo"]),
       imagenAmbiente: Boolean(h["imagen_ambiente"]),
-      image: String(h["imagen_url"] || ""),
+      image: hotelImages[String(h["slug"])] ?? String(h["imagen_url"] || ""),
       pricePerNight: Math.min(...habitaciones.map((r) => Number(r.precio_noche))),
       rating: 0,
       reviews: 0,

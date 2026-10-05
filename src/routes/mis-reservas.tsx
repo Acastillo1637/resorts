@@ -93,18 +93,18 @@ function Cuenta() {
     }
   }, [nav, qc, auth.loading, auth.profileLoading, auth.session, auth.perfil, auth.error, p]);
   useEffect(() => {
-    if (!q.data || hotel) return;
-    let nombre = "";
-    try {
-      nombre = JSON.parse(sessionStorage.getItem("maremoto-busqueda") || "{}").hotel ?? "";
-    } catch {
-      /* Ignore invalid draft. */
-    }
-    setHotel(
-      q.data.hoteles.find((h) => h.nombre === nombre)?.id ??
-        q.data.hoteles.find((h) => h.estado === "activo")?.id ??
-        "",
-    );
+  if (!q.data || hotel) return;
+
+  let nombre = "";
+  try {
+    nombre = JSON.parse(sessionStorage.getItem("maremoto-busqueda") || "{}").hotel ?? "";
+  } catch {
+    /* Ignore invalid draft. */
+  }
+
+  if (nombre) {
+    setHotel(q.data.hoteles.find((h) => h.nombre === nombre)?.id ?? "");
+  }
   }, [q.data, hotel]);
   async function refrescar() {
     setEditar(null);
@@ -315,6 +315,7 @@ function Cuenta() {
                           setHabitacionId("");
                         }}
                       >
+                        <option value="">Seleccionar hotel...</option>
                         {q.data.hoteles
                           .filter((h) => h.estado === "activo")
                           .map((h) => (
@@ -334,7 +335,7 @@ function Cuenta() {
                           setHabitacionId("");
                         }}
                       >
-                        <option value="">Cualquiera</option>
+                        <option value="">Elige una opción</option>
                         {q.data.tipos.map((t) => (
                           <option key={t.codigo} value={t.codigo}>
                             {t.nombre}

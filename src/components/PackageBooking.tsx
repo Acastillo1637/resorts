@@ -141,7 +141,7 @@ export function PackageBooking({
             />
           </label>
           <p className="text-sm">
-            Salida: {fin} · {p.noches + 1} días / {p.noches} noches
+            Salida: {fin.split("-").reverse().join("-")} · {p.noches + 1} días / {p.noches} noches
           </p>
           <div className="grid grid-cols-2 gap-3">
             <label className="text-sm">
@@ -195,7 +195,7 @@ export function PackageBooking({
             </label>
           </div>
           <p className="text-xs text-ink-soft">
-            {(p.min_huespedes ?? 1) === p.capacidad ? "Para" : "Hasta"} {p.capacidad} huéspedes ·
+            Hasta {p.capacidad} huéspedes ·
             mínimo {p.min_adultos} adultos · máximo {p.max_ninos} niños
           </p>
           {!valid && <p role="alert">Revisa las fechas y la cantidad de huéspedes.</p>}

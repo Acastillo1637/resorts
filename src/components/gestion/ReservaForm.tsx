@@ -130,7 +130,7 @@ export function ReservaForm({
               p_fecha_inicio: inicio,
               p_fecha_fin: fin,
             })) as Habitacion[];
-            setDisponibles(rows.map((x) => x.id));
+            setDisponibles(rows.filter((x) => x.capacidad >= adultos + ninos).map((x) => x.id),);
           } catch (err) {
             setError(errorMensaje(err));
           } finally {

@@ -37,7 +37,7 @@ function Detalle() {
             <p className="mt-5 text-lg text-ink-soft">{p.descripcion}</p>
             <p className="mt-5 font-bold">
               {p.noches + 1} días / {p.noches} noches · {p.tipo} ·{" "}
-              {(p.min_huespedes ?? 1) === p.capacidad ? "para" : "hasta"} {p.capacidad} huéspedes
+              hasta {p.capacidad} huéspedes
             </p>
             <p className="mt-4 text-2xl font-bold text-accent">
               {moneda(Number(p.precio))}

@@ -102,7 +102,7 @@ export function PackageCatalog() {
             <p className="mt-1 text-sm text-ink-soft">{p.hotel.ubicacion}</p>
             <p className="mt-4 text-sm">
               {p.noches + 1} días / {p.noches} noches ·{" "}
-              {(p.min_huespedes ?? 1) === p.capacidad ? "para" : "hasta"} {p.capacidad} huéspedes
+              Hasta {p.capacidad} huéspedes
             </p>
             <p className="mt-3 text-sm">
               Alojamiento {p.tipo}
